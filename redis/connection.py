@@ -30,7 +30,7 @@ from redis.exceptions import (
     ResponseError,
     TimeoutError,
 )
-from redis.utils import HIREDIS_AVAILABLE
+from redis.utils import HIREDIS_AVAILABLE, merge_dicts
 
 try:
     import ssl
@@ -503,7 +503,8 @@ class Connection(object):
                  socket_type=0, retry_on_timeout=False, encoding='utf-8',
                  encoding_errors='strict', decode_responses=False,
                  parser_class=DefaultParser, socket_read_size=65536,
-                 health_check_interval=0, client_name=None, username=None):
+                 health_check_interval=0, client_name=None, username=None,
+                 custom=False):
         self.pid = os.getpid()
         self.host = host
         self.port = int(port)
@@ -524,6 +525,7 @@ class Connection(object):
         self._parser = parser_class(socket_read_size=socket_read_size)
         self._connect_callbacks = []
         self._buffer_cutoff = 6000
+        self._custom = custom
 
     def __repr__(self):
         repr_args = ','.join(['%s=%s' % (k, v) for k, v in self.repr_pieces()])
@@ -1181,10 +1183,13 @@ class ConnectionPool(object):
         "Get a connection from the pool"
         self._checkpid()
         with self._lock:
-            try:
-                connection = self._available_connections.pop()
-            except IndexError:
-                connection = self.make_connection()
+            if options == {}:
+                try:
+                    connection = self._available_connections.pop()
+                except IndexError:
+                    connection = self.make_connection()
+            else:
+                connection = self.make_connection(**options)
             self._in_use_connections.add(connection)
 
         try:
@@ -1219,12 +1224,13 @@ class ConnectionPool(object):
             decode_responses=kwargs.get('decode_responses', False)
         )
 
-    def make_connection(self):
+    def make_connection(self, **options):
         "Create a new connection"
         if self._created_connections >= self.max_connections:
             raise ConnectionError("Too many connections")
         self._created_connections += 1
-        return self.connection_class(**self.connection_kwargs)
+        kwargs = merge_dicts(self.connection_kwargs, options)
+        return self.connection_class(custom=options != {}, **kwargs)
 
     def release(self, connection):
         "Releases the connection back to the pool"
@@ -1248,7 +1254,7 @@ class ConnectionPool(object):
                 return
 
     def owns_connection(self, connection):
-        return connection.pid == self.pid
+        return connection.pid == self.pid and not connection._custom
 
     def disconnect(self, inuse_connections=True):
         """

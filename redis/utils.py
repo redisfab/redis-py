@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import sys
 
 
 try:
@@ -31,3 +32,12 @@ class dummy(object):
     Instances of this class can be used as an attribute container.
     """
     pass
+
+
+def merge_dicts(x, y):
+    if y == {}:
+        return x
+    if x == {}:
+        return y
+    z = x.copy().update(y)
+    return z
