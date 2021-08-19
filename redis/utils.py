@@ -39,5 +39,6 @@ def merge_dicts(x, y):
         return x
     if x == {}:
         return y
-    z = x.copy().update(y)
+    z = x.copy()
+    z.update(y)
     return z

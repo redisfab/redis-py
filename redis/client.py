@@ -895,7 +895,7 @@ class Redis(object):
         "Execute a command and return a parsed response"
         pool = self.connection_pool
         command_name = args[0]
-        conn = self.connection or pool.get_connection(command_name, **options)
+        conn = self.connection and options == {} or pool.get_connection(command_name, **options)
         try:
             conn.send_command(*args)
             return self.parse_response(conn, command_name, **options)
