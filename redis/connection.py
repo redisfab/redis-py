@@ -30,7 +30,7 @@ from redis.exceptions import (
     ResponseError,
     TimeoutError,
 )
-from redis.utils import HIREDIS_AVAILABLE, merge_dicts
+from redis.utils import HIREDIS_AVAILABLE
 
 try:
     import ssl
@@ -1229,7 +1229,8 @@ class ConnectionPool(object):
         if self._created_connections >= self.max_connections:
             raise ConnectionError("Too many connections")
         self._created_connections += 1
-        kwargs = merge_dicts(self.connection_kwargs, options)
+        kwargs = self.connection_kwargs
+        kwargs.update(options)
         return self.connection_class(custom=options != {}, **kwargs)
 
     def release(self, connection):
@@ -1254,7 +1255,7 @@ class ConnectionPool(object):
                 return
 
     def owns_connection(self, connection):
-        return connection.pid == self.pid and not connection._custom
+        return connection.pid == self.pid and connection._custom is False
 
     def disconnect(self, inuse_connections=True):
         """
