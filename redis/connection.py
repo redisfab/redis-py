@@ -880,7 +880,7 @@ class UnixDomainSocketConnection(Connection):
                  encoding_errors='strict', decode_responses=False,
                  retry_on_timeout=False,
                  parser_class=DefaultParser, socket_read_size=65536,
-                 health_check_interval=0, client_name=None):
+                 health_check_interval=0, client_name=None, custom=False):
         self.pid = os.getpid()
         self.path = path
         self.db = db
@@ -896,6 +896,7 @@ class UnixDomainSocketConnection(Connection):
         self._parser = parser_class(socket_read_size=socket_read_size)
         self._connect_callbacks = []
         self._buffer_cutoff = 6000
+        self._custom = custom
 
     def repr_pieces(self):
         pieces = [
