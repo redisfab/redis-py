@@ -1346,9 +1346,11 @@ class BlockingConnectionPool(ConnectionPool):
         # reset() and they will immediately release _fork_lock and continue on.
         self.pid = os.getpid()
 
-    def make_connection(self):
+    def make_connection(self, **options):
         "Make a fresh connection."
-        connection = self.connection_class(**self.connection_kwargs)
+        kwargs = self.connection_kwargs
+        kwargs.update(options)
+        connection = self.connection_class(**kwargs)
         self._connections.append(connection)
         return connection
 
@@ -1380,7 +1382,7 @@ class BlockingConnectionPool(ConnectionPool):
         # If the ``connection`` is actually ``None`` then that's a cue to make
         # a new connection to add to the pool.
         if connection is None:
-            connection = self.make_connection()
+            connection = self.make_connection(**options)
 
         try:
             # ensure this connection is connected to Redis
